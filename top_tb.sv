@@ -1,7 +1,7 @@
 `timescale 100ns/1ps
 
 module tb();
-    reg clock;
+    logic clock;
 
     top uut (
         .clock
@@ -9,7 +9,7 @@ module tb();
 
     initial begin
         $dumpfile("top_tb.vcd"); // Location to dump the signal samples
-        $dumpvars;               // Asks to dump all signals
+        $dumpvars(0, uut);       // Asks to dump all signals at level 0 (current) from uut
         clock = 0;
     end
     

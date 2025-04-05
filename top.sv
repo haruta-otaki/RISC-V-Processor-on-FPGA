@@ -1,13 +1,13 @@
 module top (
-    input wire clock,
-    output wire led1,
-    output wire led2,
-    output wire led3,
-    output wire led4,
-    output wire led5
+    input logic clock,
+    output logic led1,
+    output logic led2,
+    output logic led3,
+    output logic led4,
+    output logic led5
 );
 
-    reg [25:0] counter = 0;
+    logic [25:0] counter = 0;
 
     assign led1 = counter[11];
     assign led2 = counter[12];

@@ -7,7 +7,7 @@ PROGRAMMER	?= ./program.sh
 PCF_FILE	?= pinmap.pcf
 
 # Use yosys to perform synthesis
-%.json : %.v
+%.json : %.sv
 	$(YOSYS) -p "synth_ice40 -top top -json $@" $<
 
 # Use nextpnr-ice40 to perform place-and-route
@@ -18,19 +18,19 @@ PCF_FILE	?= pinmap.pcf
 %.bin : %.asc
 	icepack $< $@
 
-# Use Icarus to compile a simulator
-top_tb.vvp : top_tb.v top.v
-	iverilog -o $@ $^
+# Use Icarus to generate a simulator
+top_tb.vvp : top_tb.sv top.sv
+	iverilog -g2012 -o $@ $^
 
-# Simulate (using Icarus' tools)
+# Use Icarus to run the simulation
 run: top_tb.vvp
 	vvp top_tb.vvp
 
 # Graph (using GTKWave)
-plot: top_tb.vcd
+graph: top_tb.vcd
 	gtkwave $^
 
-# Program
+# Program (using GPIO/program.sh and flashrom)
 program: top.bin
 	sudo $(PROGRAMMER) $^
 
