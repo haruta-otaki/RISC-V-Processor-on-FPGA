@@ -3,7 +3,8 @@ NEXTPNR 	?= nextpnr-ice40
 
 DEVICE		?= hx8k
 PACKAGE		?= tq144:4k
-PROGRAMMER	?= ./program.sh
+PROGRAMMER	?= ./spi_volatile_programmer.py
+#PROGRAMMER	?= ./spi_flash_programmer.sh
 PCF_FILE	?= pinmap.pcf
 
 # Use yosys to perform synthesis
@@ -32,7 +33,7 @@ graph: top_tb.vcd
 
 # Program (using GPIO/program.sh and flashrom)
 program: top.bin
-	sudo $(PROGRAMMER) $^
+	$(PROGRAMMER) $^
 
 # Clean
 clean:

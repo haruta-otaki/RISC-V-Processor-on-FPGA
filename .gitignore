@@ -416,3 +416,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+venv
+*.bin
+*.vvp
+*.vcd
+*.asc
+*.blif

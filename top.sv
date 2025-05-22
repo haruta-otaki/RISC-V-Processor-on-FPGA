@@ -9,11 +9,11 @@ module top (
 
     logic [25:0] counter = 0;
 
-    assign led1 = counter[11];
-    assign led2 = counter[12];
-    assign led3 = counter[13];
-    assign led4 = counter[14];
-    assign led5 = counter[15];
+    assign led1 = counter[0];
+    assign led2 = counter[22];
+    assign led3 = counter[23];
+    assign led4 = counter[24];
+    assign led5 = counter[25];
 
     always @(posedge clock) begin
         counter <= counter + 1;
