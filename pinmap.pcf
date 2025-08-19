@@ -1,7 +1,7 @@
 set_io clock 49
 
-set_io led1 87
-set_io led2 85
-set_io led3 84
-set_io led4 83
-set_io led5 82
+set_io led1 85
+set_io led2 87
+set_io led3 88
+set_io led4 90
+set_io led5 91

@@ -1,12 +1,7 @@
-~hmendes/iceprogrs/target/debug/iceprogrs --reset-gpio="gpiochip0" --reset-pin=17 --bitstream $1
-echo "done"
-exit
-echo "nope"
-
-FP_CRESET=24
+FP_CRESET=17
 FP_CDONE=23
-PR_CS=12
-FL_RESET=16
+PR_CS=8
+FL_RESET=6
 
 SPI_DEV=/dev/spidev0.0
 
@@ -26,6 +21,7 @@ fi
 # This is important so that the FPGA knows it's going to operate in SPI-peripheral mode
 echo "Stop driving the PR_CS signal (there's a pull-up in the board)"
 gpioget ${GPIO_CHIP} ${PR_CS}
+sleep 1
 
 # Initiates the flash configuration (FP_CRESET is really the CRESET input in the FPGA)
 echo "Set FPGA reset low (active)"
@@ -37,15 +33,16 @@ echo "Set Flash reset low (active), then stop driving the signal (there's a pull
 gpioset ${GPIO_CHIP} ${FL_RESET}=0
 sleep 1
 gpioget ${GPIO_CHIP} ${FL_RESET}
+sleep 1
 
-TMPBIN=filled.bin #$$.bin
-#dd if=/dev/zero bs=1081344 count=1 of=${TMPBIN}
-dd if=/dev/zero bs=1048576 count=1 of=${TMPBIN}
+TMPBIN=filled.bin
+dd if=/dev/zero bs=1081344 count=1 of=${TMPBIN}
+# dd if=/dev/zero bs=1048576 count=1 of=${TMPBIN}
 #dd if=/dev/zero bs=2162688 count=1 of=${TMPBIN}
 #dd if=/dev/zero bs=2097152 count=1 of=${TMPBIN}
 dd if=$1 of=${TMPBIN} conv=notrunc
-~hmendes/flashrom/builddir/flashrom -p linux_spi:dev=/dev/spidev0.0,spispeed=8000 --write ${TMPBIN}
-# flashrom -p linux_spi:dev=/dev/spidev0.0,spispeed=8000 --write ${TMPBIN}
+~/flashrom/builddir/flashrom -p linux_spi:dev=/dev/spidev0.0,spispeed=1000 -c AT45DB081E --write ${TMPBIN}
+#python spi_flash_write.py --page-size 264 ${TMPBIN}
 rm -f ${TMPBIN}
 
 # Finishes the flash configuration
