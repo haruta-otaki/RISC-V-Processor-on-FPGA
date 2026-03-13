@@ -1,0 +1,31 @@
+timestamp: "12012831399"
+arch: ICE40
+fpga_info {
+  fpga_id: "ice40hx1k-vq100"
+  part_num: "ICE40HX1K-VQ100"
+  size: "1k"
+  ice40 {
+    type: "hx1k"
+    pack: "vq100"
+  }
+}
+environment {
+  platform_id: "darwin-arm64"
+  is_windows: false
+  terminal_mode: FORCE_TERMINAL
+  theme_name: "light"
+  debug_level: 0
+  yosys_path: "/Users/harutaotaki/.apio/packages/oss-cad-suite/share/yosys"
+  trellis_path: "/Users/harutaotaki/.apio/packages/oss-cad-suite/share/trellis"
+  scons_shell_id: "zsh"
+}
+apio_env_params {
+  env_name: "default"
+  board_id: "go-board"
+  top_module: "main"
+}
+target {
+  upload {
+    programmer_cmd: "iceprog -d d:1/1 $SOURCE"
+  }
+}
