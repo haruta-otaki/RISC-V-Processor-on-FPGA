@@ -21,7 +21,17 @@ ENTRY(_start)
 /* "ALIGN()": maintains a clean crt0 that works (copies) in clean 4-byte chunks, with word alignment, by implementing it on the start/end of data/sdata and bss/sbss.*/
 /*">__" copy the section to "__"*/
 
-/* GP indexes .sdata and .sbss. PC-relative address with AUIPC indexes .srodata */
+/*"Small": refers to variables that the compiler has decided are good candidates for single-instruction GP-relative (.sdata and .sbss) or PC-relative (.srodata) access*/
+/*linker needs to group them together near the GP anchor to make the single-instruction access actually work.*/
+
+/*Interrupt Service Routine (ISR) Vector Table: a hardware event that needs immediate attention, */
+/* the CPU needs to drop whatever it's doing and run a specific handler function immediately, a process called an interrupt.*/
+/* The vector table is a table of addresses, where each entry says "when interrupt X fires, jump to this address."*/
+/* Each entry points to an Interrupt Service Routine (ISR) — a function you write that handles that specific event.*/
+/* as no software decision involved, and is done entirely in hardware, the linker would silently delete the vector table as "unused." KEEP() overrides that.*/
+
+/*Global Pointer (GP) Register (register x3) is a dedicated base address register for fast access to small global variables.*/
+/*normal memory access requires two instructions (lui + load), but the linker can replace that with just one instruction for small variables*/
 
 /* section placement block: everything inside maps a section name to a memory region. */
 SECTIONS
@@ -30,6 +40,8 @@ SECTIONS
   .text : {
     /*defines a symbol at the start of .text. The . means "current address."*/
     _stext = .;
+    /*forces the interrupt service routine vector table to be included, even if the linker's dead-code eliminator would otherwise remove it."*/
+    /*This is critical — if an interrupt fires and the vector table is missing, the CPU jumps to garbage*/
 
     KEEP(*(.isr_vector))
     /* .text.entry section is where crt0.S places _start (it needs to be first in ROM so the processor finds it on boot).*/
@@ -47,15 +59,14 @@ SECTIONS
     _erodata = .;
   } > ROM
 
-  /* Small data sections for GP-relative addressing from $__global_pointer$*/
-  /* small data: initialized global/static variables small enough to be accessed efficiently via the global pointer (GP) register.*/
+  /* Small data sections for global pointer (GP)-relative addressing from $__global_pointer$*/
   /* "ALIGN(LOADADDR(.rodata) + SIZEOF(.rodata), 4": sets the LMA to be right after .rodata, 4-byte aligned.*/
   /* At runtime, crt0.S will copy it from that ROM address to the VMA in RAM*/
   .sdata : AT(ALIGN(LOADADDR(.rodata) + SIZEOF(.rodata), 4)) {
     . = ALIGN(4);
     /* defines the GP symbol at _ssdata + 2KB.*/
     _ssdata = .;
-    /* The GP register gives ±2KB reach, so centering it at +0x800 into the small data region maximizes the number of variables reachable with a single instruction.*/
+    /* The GP register gives ±2KB reach, so centering it at +0x800 (2048 in decimal — exactly half of the 4KB total reach) into the small data region maximizes the number of variables reachable with a single instruction.*/
     /*crt0.S loads this into the gp register on startup.*/
     __global_pointer$ = . + 0x800;
     *(.sdata*)
@@ -63,7 +74,6 @@ SECTIONS
     _esdata = .;
   } > RAM
 
-  /*.sbss is zero-initialized small global/static variables., meaning there is no need to be stored or copied. crt0.S zeros it manually.*/
   .sbss (NOLOAD) : {
     . = ALIGN(4);
     _ssbss = .;
@@ -82,7 +92,7 @@ SECTIONS
     _edata = .;
   } > RAM
 
-  /*Zero-initialized regular globals.*/
+  /*bss is zero-initialized regular globals, , meaning there is no need to be stored or copied. crt0.S zeros it manually.*/
   .bss (NOLOAD) : {
     . = ALIGN(4);
     _sbss = .;
