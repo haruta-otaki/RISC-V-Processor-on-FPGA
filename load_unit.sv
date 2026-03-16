@@ -32,7 +32,7 @@ module load_unit (
     logic LOAD_sign;
     assign LOAD_sign = !funct3[2] & (memoryByteAccess ? LOAD_byte[7] : LOAD_halfword[15]);
 
-    assign LOAD_data = memoryByteAccess ? {{24{LOAD_sign}},     LOAD_byte} :
+    assign LOAD_data = memoryByteAccess ? {{24{LOAD_sign}}, LOAD_byte} :
                 memoryHalfwordAccess ? {{16{LOAD_sign}}, LOAD_halfword} :
                 memoryReadingData;
 

@@ -52,7 +52,7 @@ module bram_sdp #(
             if(memoryWritingMask[3]) 
                 memory[addr_write][31:24] <= data_in[31:24];
 
-            $display("storedData (3H)=%h, (2H)=%h, (1H)=%h, (0H)=%h",data_in[31:24], data_in[23:16], data_in[15:8], data_in[7:0]);
+            $display("storedData: (D)=%d, (H)=%h",data_in, data_in);
         end
     end
 
