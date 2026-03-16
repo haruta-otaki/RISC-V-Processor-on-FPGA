@@ -79,11 +79,6 @@ module instructions_tb ();
     localparam int WORD_4 = 32'h00002104 >> 2; // 0x841
     localparam int WORD_8 = 32'h00002108 >> 2; // 0x842
 
-    //change the base addr to 0x00000000 for bram memory
-    // localparam int WORD_0 = 32'h00000000 >> 2; // 0x2100 / 4 = 0x840
-    // localparam int WORD_4 = 32'h00000004 >> 2; // 0x841
-    // localparam int WORD_8 = 32'h00000008 >> 2; // 0x842
-
     initial begin
         $dumpfile("instructions_tb.vcd");
 
@@ -91,7 +86,7 @@ module instructions_tb ();
         // Give SOC a moment to load MEM_INIT
         repeat (10) @(posedge clock);
 
-        //from Brandon's code. Why? 
+        // 
         soc_inst.bram_inst.memory[WORD_0] = 32'h0000_0000;
         soc_inst.bram_inst.memory[WORD_4] = 32'h0000_0000;
         soc_inst.bram_inst.memory[WORD_8] = 32'h0000_0000;

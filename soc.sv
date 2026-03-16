@@ -15,6 +15,11 @@ module soc #(
     logic [3:0] memoryWritingMask;
     logic [31:0] x1;
 
+    // method: create a special address in memory that is not actual RAM 
+    // but has a register plugged to the devices, assigning a virtual address to each device
+    // Memory-Mapped I/O: the unified memory interface -- 
+    // CPU writes to memory, but the SoC intercepts the address and sends the data to the hardware.
+
     //--------------------------------------------------
     // BRAM
     //--------------------------------------------------   

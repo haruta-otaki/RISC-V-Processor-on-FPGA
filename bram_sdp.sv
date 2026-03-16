@@ -1,6 +1,17 @@
 `default_nettype none
 `timescale 1ns / 1ps
 
+/*
+    Memory map (the address layout): 
+    Address Range        Meaning
+    --------------------------------
+    0 → x kB             RAM
+    x kB → ...           Devices
+
+    device selection: one-hot addressing with 2 LSBs ignored 
+
+*/
+
 // This code is based on Project F's line drawing tutorial (projectF.io)
 // with modifications and cleanup
 
@@ -23,7 +34,7 @@ module bram_sdp #(
     // read memory
     output logic [WIDTH-1:0] data_out
 );
-
+    
     localparam ADDR_WIDTH=$clog2(DEPTH);
 
     logic [WIDTH-1:0] memory [DEPTH];
