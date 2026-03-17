@@ -59,7 +59,7 @@ SECTIONS
     _erodata = .;
   } > ROM
 
-  /* Small data sections for global pointer (GP)-relative addressing from $__global_pointer$*/
+  /* Small data sections for global pointer (GP)-relative addressing from __global_pointer$*/
   /* "ALIGN(LOADADDR(.rodata) + SIZEOF(.rodata), 4": sets the LMA to be right after .rodata, 4-byte aligned.*/
   /* At runtime, crt0.S will copy it from that ROM address to the VMA in RAM*/
   .sdata : AT(ALIGN(LOADADDR(.rodata) + SIZEOF(.rodata), 4)) {
