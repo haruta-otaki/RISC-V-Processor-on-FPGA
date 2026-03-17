@@ -23,7 +23,6 @@ _start:
     // loads the top of RAM into the stack pointer.
     la sp, _stack_top
 
-
 // copies .sdata from ROM to RAM, 4 bytes at a time.
 sdata_copy:
     // t0 = destination pointer (walks through RAM)

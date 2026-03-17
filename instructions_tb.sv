@@ -12,7 +12,8 @@ module instructions_tb ();
     initial clock = 0;
     // initial clock4x = 0;
 
-    localparam CLOCK_HALF_PERIOD = 40;  // 12.5 MHz
+    
+    localparam CLOCK_HALF_PERIOD = 80;  // 12.5 MHz (40) 25 MHz (80)
     // localparam CLOCK_4X_HALF_PERIOD = 10;  // 50 MHz
 
     always #(CLOCK_HALF_PERIOD) clock = ~clock;
@@ -86,10 +87,12 @@ module instructions_tb ();
         // Give SOC a moment to load MEM_INIT
         repeat (10) @(posedge clock);
 
-        // 
+        // The BRAM might be initialized from memory.mem, and whatever values happen to sit at those addresses after loading is unpredictable.
+        // This ensures a clean, known baseline.
         soc_inst.bram_inst.memory[WORD_0] = 32'h0000_0000;
         soc_inst.bram_inst.memory[WORD_4] = 32'h0000_0000;
         soc_inst.bram_inst.memory[WORD_8] = 32'h0000_0000;
+        // after writing directly to the memory array, wait to let any internal BRAM registered outputs or pipeline stages settle before reset is applied.
         repeat (3) @(posedge clock);
 
         // Apply reset

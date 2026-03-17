@@ -1,11 +1,7 @@
-// UART Receiver 
-
-// Example: 25 MHz Clock, 115200 baud UART
-// (25000000)/(115200) = 217
  
 module UART_RX
-// Set Parameter CLKS_PER_BIT as
 // CLKS_PER_BIT = (Frequency of i_Clock)/(Frequency of UART)
+//(25 MHz Clock)/(115200 baud) = 217
   #(parameter CLKS_PER_BIT = 217)
   (
    input        i_Clock,
@@ -67,7 +63,7 @@ module UART_RX
             r_Clock_Count <= r_Clock_Count + 1;
             r_SM_Main     <= RX_START_BIT;
           end
-        end // case: RX_START_BIT
+    endcase // case: RX_START_BIT
       
       
       // Wait CLKS_PER_BIT-1 clock cycles to sample serial data

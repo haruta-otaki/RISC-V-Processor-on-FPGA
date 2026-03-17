@@ -7,7 +7,6 @@
     // 4'b0011 or 4'b1100	SH, depending on memoryWritingAddress[1]
     // 4'b0001, 4'b0010, 4'b0100 or 4'b1000	SB, depending on memoryWritingAddress[1:0]
 
-
 module store_unit (
     input logic [2:0] funct3,
     input logic [31:0] rs2,

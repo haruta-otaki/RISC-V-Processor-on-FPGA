@@ -12,6 +12,7 @@ def int_or_label(location):
     # Assume location is an integer
     return int(location, 0)
 
+
 def reg(name):
     return int(name[1:])  # x0..x31
 
