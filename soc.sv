@@ -3,8 +3,8 @@ module soc #(
     ) (
     input logic clock,        // system clock
     input logic RESET,      // reset button
-    input logic UART_RX,        // UART receive
-    output logic UART_TX         // UART transmit - physical wire 
+    input logic RXserial,        // UART receive
+    output logic TXserial         // UART transmit - physical wire 
     );
 
     // memory map: 0x400 (1 kB) for memory-mapped I/O registers; 31KB of SRAM; 32KB of ROM from (0x8000);
@@ -97,7 +97,7 @@ module soc #(
         .ioWritingData(memoryWritingData[7:0]), // bottom 8 bits matter as UART sends one byte at a time
         .isUART(isUART),
         .isTX(isTX),
-        .UART_RX(UART_RX)
-        .UART_TX(UART_TX)
+        .RXserial(RXserial)
+        .TXserial(TXserial)
     );
 endmodule

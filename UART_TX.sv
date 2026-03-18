@@ -1,134 +1,118 @@
-// This file contains the UART Transmitter.  This transmitter is able
-// to transmit 8 bits of serial data, one start bit, one stop bit,
-// and no parity bit.  When transmit is complete o_Tx_done will be
-// driven high for one clock cycle.
-//
-// Set Parameter CLKS_PER_BIT as follows:
-// CLKS_PER_BIT = (Frequency of i_Clock)/(Frequency of UART)
-// Example: 25 MHz Clock, 115200 baud UART
-// (25000000)/(115200) = 217
- 
-module UART_TX 
-  #(parameter CLKS_PER_BIT = 217)
-  (
-   input       i_Clock,
-   input       i_TX_DV,
-   input [7:0] i_TX_Byte, 
-   output reg  o_TX_Active,
-   output reg  o_TX_Serial,
-   output reg  o_TX_Done
-   );
- 
-  localparam IDLE         = 2'b00;
-  localparam TX_START_BIT = 2'b01;
-  localparam TX_DATA_BITS = 2'b10;
-  localparam TX_STOP_BIT  = 2'b11;
-  
-  reg [2:0] r_SM_Main;
-  reg [$clog2(CLKS_PER_BIT):0] r_Clock_Count;
-  reg [2:0] r_Bit_Index;
-  reg [7:0] r_TX_Data;
+module uart_TX 
+    // CLKS_PER_BIT = (Frequency of clock)/(Frequency of UART)
+    // (25 MHz Clock)/(115200 baud) = 217
+    #(parameter CLKS_PER_BIT = 217)
+    (
+    input logic clock,
+    input logic reset, 
+    input logic TXvalid,
+    input logic [7:0] TXbyte, 
+    output logic TXactive,
+    output logic TXserial,
+    output logic TXdone
+    );
 
-  // Purpose: Control TX state machine
-  always @(posedge i_Clock)
-  begin
+    parameter IDLE         = 2'b00;
+    parameter TX_START_BIT = 2'b01;
+    parameter TX_DATA_BITS = 2'b10;
+    parameter TX_STOP_BIT  = 2'b11;
 
-    o_TX_Done <= 1'b0;
+    logic [1:0] state;
+    logic [$clog2(CLKS_PER_BIT):0] clockCount;
+    logic [2:0] index;
+    logic [7:0] TXdata;
 
-    case (r_SM_Main)
-    IDLE :
+    // Control TX state machine
+    always @(posedge clock or posedge reset)
     begin
-        o_TX_Serial   <= 1'b1;         // Drive Line High for Idle
-        r_Clock_Count <= 0;
-        r_Bit_Index   <= 0;
-        
-        if (i_TX_DV == 1'b1)
+        TXdone <= 1'b0;
+        if (reset)
         begin
-        o_TX_Active <= 1'b1;
-        //register the byte to send
-        // prevents conflicts for when i_TX_Byte changes during 
-        // processing
-        r_TX_Data   <= i_TX_Byte;
-        r_SM_Main   <= TX_START_BIT;
+            state <= IDLE; 
+            clockCount <= 0;
+            index <= 0;
+            TXserial <= 1'b1;
+            TXactive   <= 1'b0;
         end
-        else
-        r_SM_Main <= IDLE;
-    end // case: IDLE
-    
-    
-    // Send out Start Bit. Start bit = 0
-    TX_START_BIT :
-    begin
-        o_TX_Serial <= 1'b0;
-        
-        // Wait CLKS_PER_BIT-1 clock cycles for start bit to finish
-        if (r_Clock_Count < CLKS_PER_BIT-1)
+        else 
         begin
-        r_Clock_Count <= r_Clock_Count + 1;
-        r_SM_Main     <= TX_START_BIT;
-        end
-        else
-        begin
-        r_Clock_Count <= 0;
-        r_SM_Main     <= TX_DATA_BITS;
-        end
-    end // case: TX_START_BIT
-    
-    
-    // Wait CLKS_PER_BIT-1 clock cycles for data bits to finish         
-    TX_DATA_BITS :
-    begin
-        o_TX_Serial <= r_TX_Data[r_Bit_Index];
-        
-        if (r_Clock_Count < CLKS_PER_BIT-1)
-        begin
-        r_Clock_Count <= r_Clock_Count + 1;
-        r_SM_Main     <= TX_DATA_BITS;
-        end
-        else
-        begin
-        r_Clock_Count <= 0;
-        
-        // Check if we have sent out all bits
-        if (r_Bit_Index < 7)
-        begin
-            r_Bit_Index <= r_Bit_Index + 1;
-            r_SM_Main   <= TX_DATA_BITS;
-        end
-        else
-        begin
-            r_Bit_Index <= 0;
-            r_SM_Main   <= TX_STOP_BIT;
-        end
-        end 
-    end // case: TX_DATA_BITS
-    
-    
-    // Send out Stop bit.  Stop bit = 1
-    TX_STOP_BIT :
-    begin
-        o_TX_Serial <= 1'b1;
-        
-        // Wait CLKS_PER_BIT-1 clock cycles for Stop bit to finish
-        if (r_Clock_Count < CLKS_PER_BIT-1)
-        begin
-        r_Clock_Count <= r_Clock_Count + 1;
-        r_SM_Main     <= TX_STOP_BIT;
-        end
-        else
-        begin
-        o_TX_Done     <= 1'b1;
-        r_Clock_Count <= 0;
-        r_SM_Main     <= IDLE;
-        o_TX_Active   <= 1'b0;
-        end 
-    end // case: TX_STOP_BIT      
-    
-    default :
-    r_SM_Main <= IDLE;
-    
-endcase
-  end // always @ (posedge i_Clock or negedge i_Rst_L)
+            case (state)
+                IDLE :
+                begin
+                    TXserial <= 1'b1; // Drive Line High for Idle
+                    clockCount <= 0;
+                    index <= 0;
+                    
+                    if (TXvalid == 1'b1)
+                    begin
+                        TXactive <= 1'b1;
+                        // prevents conflicts for when TXbyte changes during processing
+                        TXdata <= TXbyte;
+                        state <= TX_START_BIT;
+                    end
+                    else
+                        state <= IDLE;
+                end 
 
-  
+                // Send out Start Bit, wait CLKS_PER_BIT-1 clock cycles 
+                TX_START_BIT :
+                begin
+                    TXserial <= 1'b0;
+                    if (clockCount < CLKS_PER_BIT-1)
+                    begin
+                        clockCount <= clockCount + 1;
+                        state <= TX_START_BIT;
+                    end
+                    else
+                    begin
+                        clockCount <= 0;
+                        state <= TX_DATA_BITS;
+                    end
+                end 
+                
+                TX_DATA_BITS :
+                begin
+                    TXserial <= TXdata[index];
+                    
+                    if (clockCount < CLKS_PER_BIT-1)
+                    begin
+                        clockCount <= clockCount + 1;
+                        state <= TX_DATA_BITS;
+                    end
+                    else
+                    begin
+                        clockCount <= 0;
+                        // check if we have sent out all bits
+                        if (index < 7)
+                        begin
+                            index <= index + 1;
+                            state <= TX_DATA_BITS;
+                        end
+                        else
+                            state <= TX_STOP_BIT;
+                    end 
+                end 
+                
+                // Send out Stop bit
+                TX_STOP_BIT :
+                begin
+                    TXserial <= 1'b1;
+                    if (clockCount < CLKS_PER_BIT-1)
+                    begin
+                        clockCount <= clockCount + 1;
+                        state <= TX_STOP_BIT;
+                    end
+                    else
+                    begin
+                        TXdone     <= 1'b1;
+                        TXactive   <= 1'b0;
+                        state     <= IDLE;
+                    end 
+                end 
+                
+                default :
+                state <= IDLE;
+            endcase
+        end
+  end
 endmodule

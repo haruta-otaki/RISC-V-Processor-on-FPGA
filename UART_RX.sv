@@ -1,4 +1,4 @@
-module UART_RX
+module uart_RX
 	// CLKS_PER_BIT = (Frequency of clock)/(Frequency of UART)
 	//(25 MHz Clock)/(115200 baud) = 217
 	#(parameter CLKS_PER_BIT = 217)
