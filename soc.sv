@@ -20,9 +20,9 @@ module soc #(
     logic [31:0] x1;
     logic isIO; 
     logic isRAM;
-    logic isUART; 
-    logic isTX; //(busy: 1, ready:0)
-    logic [31:0] ioReadingData;
+    logic isRX; 
+    logic isTX; 
+    logic [7:0] ioReadingData;
     logic [31:0] ramReadingData;
 
     //--------------------------------------------------
@@ -82,22 +82,26 @@ module soc #(
         IO_BIT_TO_OFFSET = 1 << (bit + 2);
     endfunction
     
-    assign isUART = isIO & memoryWritingSignal & memoryWritingAddress[IO_UART_DATA_bit];
+    //check
+    assign isTX = isIO & memoryWritingSignal & memoryWritingAddress[IO_UART_DATA_bit + 2];
 
-    assign ioReadingData = 
-        memoryReadingAddress[IO_UART_CNTL_bit] ? {22'b0, !isUART, 9'b0} : 32'b0;
-
-    assign memoryReadingData = isRAM ? ramReadingData : ioReadingData ;
+    // check
+    // wire [31:0] IO_rdata = mem_wordaddr[IO_UART_CNTL_bit] ? { 22'b0, !uart_ready, 9'b0} : 32'b0;
+    
+    // unsure where memoryReadingAddress[IO_UART_CNTL_bit] is supposed to be used
+    assign memoryReadingData = isRAM ? ramReadingData : 
+        (isRX & memoryReadingSignal) ? {24'b0, ioReadingData} : 32'b0;
 
     uart #(
         .CLKS_PER_BIT(217)
     ) UART (
         .clock(clock),
         .reset(RESET),
+        .ioReadingData(ioReadingData),
         .ioWritingData(memoryWritingData[7:0]), // bottom 8 bits matter as UART sends one byte at a time
-        .isUART(isUART),
+        .isRX(isRX),
         .isTX(isTX),
-        .RXserial(RXserial)
+        .RXserial(RXserial),
         .TXserial(TXserial)
     );
 endmodule
