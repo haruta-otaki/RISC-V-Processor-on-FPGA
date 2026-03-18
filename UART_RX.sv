@@ -1,142 +1,148 @@
- 
 module UART_RX
-// CLKS_PER_BIT = (Frequency of i_Clock)/(Frequency of UART)
-//(25 MHz Clock)/(115200 baud) = 217
-  #(parameter CLKS_PER_BIT = 217)
-  (
-   input        i_Clock,
-   input        i_RX_Serial,
-  // driven high for one clock cycle when receive is complete
-   output       o_RX_DV,
-   output [7:0] o_RX_Byte
-   );
-   
-  // numerical representation of each state
-  // receive 8 bits of serial data, one start bit, one stop bit, and no parity bit.
-  parameter IDLE         = 3'b000;
-  parameter RX_START_BIT = 3'b001;
-  parameter RX_DATA_BITS = 3'b010;
-  parameter RX_STOP_BIT  = 3'b011;
-  parameter CLEANUP      = 3'b100;
-  
-  reg [7:0]     r_Clock_Count = 0;
-  reg [2:0]     r_Bit_Index   = 0; 
-  reg [7:0]     r_RX_Byte     = 0;
-  reg           r_RX_DV       = 0;
-  reg [2:0]     r_SM_Main     = 0;
-  
-  // Purpose: Control RX state machine
-  always @(posedge i_Clock)
-  begin
-      
-    case (r_SM_Main)
-      IDLE :
-        begin
-          r_RX_DV       <= 1'b0;
-          r_Clock_Count <= 0;
-          r_Bit_Index   <= 0;
-          
-          if (i_RX_Serial == 1'b0)          // Start bit detected
-            r_SM_Main <= RX_START_BIT;
-          else
-            r_SM_Main <= IDLE;
-        end
-      
-      // Check middle of start bit to make sure it's still low
-      RX_START_BIT :
-        begin
-          if (r_Clock_Count == (CLKS_PER_BIT-1)/2)
-          begin
-            if (i_RX_Serial == 1'b0)
-            begin
-              r_Clock_Count <= 0;  // reset counter, found the middle 
-              r_SM_Main     <= RX_DATA_BITS;
-            end
-            else
-            // error, wait for the next data byte  
-              r_SM_Main <= IDLE;
-          end
-          else
-          begin
-            // if not yet in the middle, wait for the 
-            // increment the counter and maintain state 
-            r_Clock_Count <= r_Clock_Count + 1;
-            r_SM_Main     <= RX_START_BIT;
-          end
-    endcase // case: RX_START_BIT
-      
-      
-      // Wait CLKS_PER_BIT-1 clock cycles to sample serial data
-      RX_DATA_BITS :
-        begin
-            // check for when the clock count is at its limit
-          if (r_Clock_Count < CLKS_PER_BIT-1)
-          begin
-            // if not, increment clock count and maintain state
-            r_Clock_Count <= r_Clock_Count + 1;
-            r_SM_Main     <= RX_DATA_BITS;
-          end
-          else
-          begin
-            // if yes, in the middle of a data bit,
-            // sample line and reset counter 
-            r_Clock_Count          <= 0;
-            // update which bit in the byte we are loading 
-            r_RX_Byte[r_Bit_Index] <= i_RX_Serial;
-            
-            // Check if we have received all bits
-            if (r_Bit_Index < 7)
-            begin
-                // increment index 
-              r_Bit_Index <= r_Bit_Index + 1;
-              r_SM_Main   <= RX_DATA_BITS;
-            end
-            else
-            begin
-                // reset index and stop receiving 
-              r_Bit_Index <= 0;
-              r_SM_Main   <= RX_STOP_BIT;
-            end
-          end
-        end // case: RX_DATA_BITS
-      
-      
-      // Receive Stop bit.  Stop bit = 1
-      RX_STOP_BIT :
-        begin
-          // Wait CLKS_PER_BIT-1 clock cycles for Stop bit to finish
-          if (r_Clock_Count < CLKS_PER_BIT-1)
-          begin
-            r_Clock_Count <= r_Clock_Count + 1;
-     	      r_SM_Main     <= RX_STOP_BIT;
-          end
-          else
-          begin
-            // check stop bit is high
-            // change to clean up state
-       	    r_RX_DV       <= 1'b1;
-            r_Clock_Count <= 0;
-            r_SM_Main     <= CLEANUP;
-          end
-        end // case: RX_STOP_BIT
-      
-      
-      // Stay here 1 clock before returning to idle state 
-      CLEANUP :
-        begin
-          // the r_RX_DV is verification that the received byte is valid  
-          r_SM_Main <= IDLE;
-          r_RX_DV   <= 1'b0;
-        end
-      
-      
-      default :
-        r_SM_Main <= IDLE;
-      
-    endcase
-  end    
-  
-  assign o_RX_DV   = r_RX_DV;
-  assign o_RX_Byte = r_RX_Byte;
-  
+	// CLKS_PER_BIT = (Frequency of clock)/(Frequency of UART)
+	//(25 MHz Clock)/(115200 baud) = 217
+	#(parameter CLKS_PER_BIT = 217)
+	(
+		input logic clock,
+		input logic reset, 
+		// raw 1-bit serial line coming in from the outside world
+		input logic RXserial,
+		// pulses high for one clock when a full valid byte has been received
+		output logic  RXvalid,
+		// fully assembled received byte
+		output logic  [7:0] RXbyte
+	);
+
+	// receive 8 bits of serial data, one start bit, one stop bit, and no parity bit.
+	parameter IDLE         = 3'b000;
+	parameter RX_START_BIT = 3'b001;
+	parameter RX_DATA_BITS = 3'b010;
+	parameter RX_STOP_BIT  = 3'b011;
+	parameter CLEANUP      = 3'b100;
+
+	// counts clock cycles within the current bit period. 
+	logic [7:0] clockCount;
+	// tracks which of the 8 data bits you're currently receiving
+	logic [2:0] index; 
+	// holds the current state
+	logic [2:0] state;
+
+	//Control RX state machine
+	always @(posedge clock or posedge reset)
+	begin
+	if (reset)
+	begin
+		state <= IDLE; 
+		clockCount <= 0;
+		index <= 0;
+		RXvalid <= 1'b0;
+	end
+	else 
+	begin
+	case (state)
+		IDLE :
+		begin
+			clockCount <= 0;
+			index <= 0;
+			RXvalid <= 1'b0;
+
+			if (RXserial == 1'b0) // Start bit detected
+				state <= RX_START_BIT;
+			else
+				state <= IDLE;
+		end
+
+		RX_START_BIT :
+		begin
+			// check middle of start bit to make sure it's still low
+			if (clockCount == (CLKS_PER_BIT-1)/2)
+			begin
+				if (RXserial == 1'b0)
+				begin
+					// reset counter, found the middle 
+					clockCount <= 0; 
+					state <= RX_DATA_BITS;
+				end
+				else
+				begin
+					// error, wait for the next data byte  
+					state <= IDLE; 	
+				end
+			end
+			else
+			begin
+				// if not yet in the middle, wait for the increment the counter and maintain state (avoid sampling at edges)
+				clockCount <= clockCount + 1;
+				state <= RX_START_BIT;
+			end
+		end
+		
+		// Wait CLKS_PER_BIT-1 clock cycles to sample serial data
+		RX_DATA_BITS :
+		begin
+			// check for when the clock count is at its limit
+			if (clockCount < CLKS_PER_BIT-1)
+			begin
+				// if not, increment clock count and maintain state
+				clockCount <= clockCount + 1;
+				state <= RX_DATA_BITS;
+			end
+			else
+			begin
+				// sample line and reset counter 
+				clockCount <= 0;
+				// update which bit in the byte we are loading 
+				RXbyte[index] <= RXserial;
+				// Check if we have received all bits
+				if (index < 7)
+				begin
+					// increment index 
+					index <= index + 1;
+					state <= RX_DATA_BITS;
+				end
+				else
+				begin
+					// stop receiving 
+					state <= RX_STOP_BIT;
+				end
+			end
+		end 
+		
+		// receive Stop bit. 
+		RX_STOP_BIT :
+		begin
+			if (clockCount < CLKS_PER_BIT-1)
+			begin
+			clockCount <= clockCount + 1;
+			state <= RX_STOP_BIT;
+			end
+			else
+			begin
+				clockCount <= 0;
+				// check stop bit is high
+				if (RXserial == 1'b1)
+				begin
+					RXvalid <= 1'b1;
+					state <= CLEANUP;
+				end
+				else
+				begin
+					// framing error: stop bit not high, discard byte
+					RXvalid <= 1'b0;
+					state <= IDLE;
+				end
+			end
+		end 
+		// wait 1 clock cycle before returning to idle state 
+		CLEANUP :
+		begin
+			// the RXvalid is verification that the received byte is valid  
+			state <= IDLE;
+			RXvalid <= 1'b0;
+		end
+		default :
+			state <= IDLE;
+		endcase
+		end
+	end    
 endmodule 

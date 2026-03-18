@@ -2,6 +2,7 @@ module uart
   # (parameter CLKS_PER_BIT = 217)
   (
     input clock, 
+    input reset, 
     input UART_RX, 
     output UART_TX
   );
@@ -17,7 +18,8 @@ module uart
   )
   UART_RX_INST
     (
-    .i_Clock(clock),
+    .clock(clock),
+    .reset(reset),
     .i_RX_Serial(UART_RX),
     .o_RX_DV(w_RX_DV),
     .o_RX_Byte(w_Binary_Count)
@@ -28,7 +30,7 @@ module uart
   )
   UART_TX_INST
     (
-      .i_Clock(clock),
+      .clock(clock),
       .i_TX_DV(w_RX_DV),
       .i_TX_Byte(w_Binary_Count),
       .o_TX_Active(w_TX_Active),
