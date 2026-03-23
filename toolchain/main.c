@@ -1,6 +1,16 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "uart.h"
+
+#include "utils.h"
 
 int main() {
-    printf("Hello World"); 
-    return 0; 
+   char buffer[128];
+
+   while(1) {
+      fgets(buffer, 128, STDIN_FILENO);
+      print(buffer);
+   }
 }

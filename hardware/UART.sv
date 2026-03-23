@@ -4,9 +4,9 @@ module uart
     input logic clock, 
     input logic reset, 
     output logic [7:0] ioReadingData,
-	input logic [7:0] ioWritingData,  
-	output logic isRX, 
-	input logic isTX, 
+    input logic [7:0] ioWritingData,  
+    output logic isRX, 
+    input logic isTX, 
     input logic RXserial, 
     output logic TXserial
   );

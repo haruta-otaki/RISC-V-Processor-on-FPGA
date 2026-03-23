@@ -73,7 +73,7 @@ module soc #(
 
     // 1-hot encoding: data is routed to device number n if bit n is set in the address, ignoring the two LSBs
     parameter IO_UART_DATA_bit  = 0;  // address for TX (bit 2)
-    parameter IO_UART_CNTL_bit = 1;  // address for RX (bit 3) -> (busy: 1, ready:0)
+    parameter IO_UART_CONTROL_bit = 1;  // address for RX (bit 3) -> (busy: 1, ready:0)
 
     // Converts an IO_xxx_bit constant into an offset in IO page. 
     // e.g. SW(a0,gp,IO_BIT_TO_OFFSET(IO_LEDS_bit));
@@ -90,7 +90,7 @@ module soc #(
     
     // unsure where memoryReadingAddress[IO_UART_CNTL_bit] is supposed to be used
     assign memoryReadingData = isRAM ? ramReadingData : 
-        (isRX & memoryReadingSignal) ? {24'b0, ioReadingData} : 32'b0;
+        (isRX & memoryReadingSignal & !memoryReadingAddress[IO_UART_CNTL_bit]) ? {24'b0, ioReadingData} : 32'b0;
 
     uart #(
         .CLKS_PER_BIT(217)
