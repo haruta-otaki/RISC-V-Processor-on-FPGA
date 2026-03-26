@@ -206,7 +206,7 @@ module processor #(
         INIT :
             begin
                 memoryReadingSignal <= 1; 
-                PC <= 0; 
+                PC <= 0;
                 state <= FETCH;
             end
 
@@ -221,12 +221,12 @@ module processor #(
             begin
                 //instruction isn't updated until FETCH; why? 
                 fetched_instruction <= instruction; 
-                $display("PC: %d, instruction:%h", PC/4, instruction);
+                $display("PC: %h, instruction:%h", PC, instruction);
                 
-                if(isSYSTEM || $isunknown(instruction)) 
+                if($isunknown(instruction) || instruction == 0) 
                     state <= HALT;
                 else 
-                    state <= EXECUTE;
+                state <= EXECUTE;
 
                 PCImmediate <= PC + (isJAL? Jimmediate[31:0] :
                             isAUIPC ? Uimmediate[31:0] :

@@ -8,12 +8,12 @@ module uart
     output logic isRX, 
     input logic isTX, 
     input logic RXserial, 
-    output logic TXserial
+    output logic TXserial,
+    output logic TXactive
   );
   
   logic [7:0] w_Binary_Count; 
 
-  logic TXactive; 
   logic currentTXserial; 
 
   uart_RX #(

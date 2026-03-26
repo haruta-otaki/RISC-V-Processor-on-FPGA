@@ -29,7 +29,8 @@ module instructions_tb ();
     //     .reset_button(reset)
     // );
 
-    logic RXD = 1'b0;
+    logic RXD=0;
+
     logic TXD;
 
     soc #(

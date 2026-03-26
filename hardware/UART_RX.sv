@@ -21,7 +21,7 @@ module uart_RX
 	parameter CLEANUP      = 3'b100;
 
 	// counts clock cycles within the current bit period. 
-	logic [7:0] clockCount;
+	logic [$clog2(CLKS_PER_BIT):0] clockCount;
 	// tracks which of the 8 data bits you're currently receiving
 	logic [2:0] index; 
 	// holds the current state

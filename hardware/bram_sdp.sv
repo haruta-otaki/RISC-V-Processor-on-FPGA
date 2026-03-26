@@ -18,7 +18,8 @@
 module bram_sdp #(
     parameter WIDTH=32, 
     parameter DEPTH=3072, 
-    parameter INIT=""
+    parameter INIT="",
+    parameter ADDR_WIDTH=$clog2(DEPTH)
     ) (
     input logic clock_write,
     input logic clock_read,
@@ -34,12 +35,11 @@ module bram_sdp #(
     // read memory
     output logic [WIDTH-1:0] data_out
 );
-    
-    localparam ADDR_WIDTH=$clog2(DEPTH);
-
+    // localparam ADDR_WIDTH=$clog2(DEPTH);
     logic [WIDTH-1:0] memory [DEPTH];
 
-    initial begin
+    initial 
+    begin
         if (INIT != "") begin
             $display("Load init file '%s' into bram_sdp.", INIT);
             $readmemh(INIT, memory);
@@ -62,8 +62,6 @@ module bram_sdp #(
                 memory[addr_write][23:16] <= data_in[23:16];
             if(memoryWritingMask[3]) 
                 memory[addr_write][31:24] <= data_in[31:24];
-
-            $display("storedData: (D)=%d, (H)=%h",data_in, data_in);
         end
     end
 

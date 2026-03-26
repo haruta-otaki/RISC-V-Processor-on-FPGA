@@ -11,11 +11,11 @@ PCF_FILE	?= pinmap.pcf
 TOP			?= soc
 # The SystemVerilog testbench used for simulation with Icarus Verilog.
 # This module instantiates TOPand provides clocks, resets, and stimulus for simulation purposes.
-TOP_TB		?= instructions_tb
+TOP_TB		?= c_code_tb
 #  actual hardware design files used for synthesis and bitstream generation.
-MODULES		?= soc.sv processor.sv bram_sdp.sv decoder.sv alu.sv branch_unit.sv load_unit.sv store_unit.sv
+MODULES		?= soc.sv processor.sv bram_sdp.sv decoder.sv alu.sv branch_unit.sv load_unit.sv store_unit.sv UART.sv UART_TX.sv UART_RX.sv
 # include the testbench itself (TOP_TB) plus all RTL modules, used only for simulation, not for synthesis.
-MODULES_TB	?= instructions_tb.sv
+MODULES_TB	?= c_code_tb.sv
 
 # Use yosys to perform synthesis
 %.json : %.sv
