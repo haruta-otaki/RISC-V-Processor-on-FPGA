@@ -64,6 +64,8 @@ int _read(int fd, void *buf, size_t n) {
     return (int) i;
 }
 #else
+    // support multiple UART devices
+    // each device spaced by: 0x40 bytes per device
     #define IO_BASE 0x300
     #define IO_DEVICE(x) (IO_BASE + (x * 0x40))
 
@@ -81,13 +83,12 @@ int _read(int fd, void *buf, size_t n) {
 
     #define DEFAULT_DEVICE 1
 
-int _write(int fd, const void *buf, size_t n) {
-    if(fd != STDOUT_FILENO && fd != STDERR_FILENO) {
-#ifdef LIBC
-        errno = EBADF;
-#endif // LIBC
-
-        return -1;
+    int _write(int fd, const void *buf, size_t n) {
+        if(fd != STDOUT_FILENO && fd != STDERR_FILENO) {
+    #ifdef LIBC
+            errno = EBADF;
+    #endif // LIBC
+            return -1;
     }
 
     uint8_t device = DEFAULT_DEVICE;
@@ -97,19 +98,17 @@ int _write(int fd, const void *buf, size_t n) {
         while((UART_STATUS(device) & STATUS_WAIT_TX)) {
             // spin!
         }
-
         UART_TX(device) = p[i];
     }
 
     return (int) n;
-}
+    }
 
-int _read(int fd, void *buf, size_t n) {
-    if(fd != STDIN_FILENO) {
-#ifdef LIBC
-        errno = EBADF;
-#endif // LIBC
-
+    int _read(int fd, void *buf, size_t n) {
+        if(fd != STDIN_FILENO) {
+    #ifdef LIBC
+            errno = EBADF;
+    #endif // LIBC
         return -1;
     }
 
@@ -118,9 +117,7 @@ int _read(int fd, void *buf, size_t n) {
     }
 
     uint8_t device = DEFAULT_DEVICE;
-
     uint8_t *p = buf;
-
     size_t i = 0;
 
     while(i < n) {
@@ -128,14 +125,11 @@ int _read(int fd, void *buf, size_t n) {
             if(i == 0) {
                 continue;
             }
-            
             // Return partial bytes
             break;
         }
-
         p[i++] = (uint8_t) UART_RX(device);
     }
-
     return (int) i;
 }
 #endif // QEMU

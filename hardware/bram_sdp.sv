@@ -1,28 +1,18 @@
 `default_nettype none
 `timescale 1ns / 1ps
 
-/*
-    Memory map (the address layout): 
-    Address Range        Meaning
-    --------------------------------
-    0 → x kB             RAM
-    x kB → ...           Devices
-
-    device selection: one-hot addressing with 2 LSBs ignored 
-
-*/
-
 // This code is based on Project F's line drawing tutorial (projectF.io)
 // with modifications and cleanup
 
 module bram_sdp #(
     parameter WIDTH=32, 
-    parameter DEPTH=3072, 
+    parameter DEPTH=(1 << (15-2)), 
     parameter INIT="",
     parameter ADDR_WIDTH=$clog2(DEPTH)
     ) (
     input logic clock_write,
     input logic clock_read,
+    input logic reset, 
     input logic write_enable,
     // set to 1 when reading from memory 
     input logic read_enable,
@@ -40,11 +30,20 @@ module bram_sdp #(
 
     initial 
     begin
-        if (INIT != "") begin
+        if (INIT != "") 
+        begin
+            // $readmemh() command loads the data to initialize a memory from an external file. 
             $display("Load init file '%s' into bram_sdp.", INIT);
             $readmemh(INIT, memory);
             // $readmemb(INIT, memory);
         end
+        else 
+        // zero-initializes every entry in the RAM array at the start of simulation.
+        // as in real hardware, SRAM powers up with garbage/undefined values
+        begin 
+            for(int i=0; i<DEPTH; i++) 
+                memory[i] <= 0;
+        end 
     end
 
     // Port A: Sync Write
@@ -66,7 +65,11 @@ module bram_sdp #(
     end
 
     // Port B: Sync Read
-    always_ff @(posedge clock_read) begin
-        if (read_enable) data_out <= memory[addr_read];
+    always_ff @(posedge clock_read or posedge reset) 
+    begin
+        if (reset) 
+            data_out <= {WIDTH{1'b0}};
+        if (read_enable) 
+            data_out <= memory[addr_read];
     end
 endmodule

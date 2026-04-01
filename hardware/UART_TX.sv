@@ -8,8 +8,7 @@ module uart_TX
     input logic TXvalid,
     input logic [7:0] TXbyte, 
     output logic TXactive,
-    output logic TXserial,
-    output logic TXdone
+    output logic TXserial
     );
 
     parameter IDLE         = 2'b00;
@@ -25,7 +24,6 @@ module uart_TX
     // Control TX state machine
     always @(posedge clock or posedge reset)
     begin
-        TXdone <= 1'b0;
         if (reset)
         begin
             state <= IDLE; 
@@ -104,7 +102,6 @@ module uart_TX
                     end
                     else
                     begin
-                        TXdone     <= 1'b1;
                         TXactive   <= 1'b0;
                         state     <= IDLE;
                     end 

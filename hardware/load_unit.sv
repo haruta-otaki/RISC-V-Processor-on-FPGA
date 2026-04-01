@@ -7,7 +7,7 @@
 module load_unit (
     input logic [2:0] funct3,
     input logic [31:0] LOAD_address,
-    input logic [31:0] memoryReadingData,
+    input logic [31:0] readingData,
     output logic [31:0] LOAD_data
    );
     // addresses are aligned on word boundaries for LW (multiple of 4 bytes) 
@@ -16,7 +16,7 @@ module load_unit (
     // when loading a byte, find which one among 4, and a halfword, which one among 2,
     // done by examining the 2 LSBs of the address of the data to be loaded (rs1 + Iimm)
     logic [15:0] LOAD_halfword; 
-    assign LOAD_halfword = LOAD_address[1] ? memoryReadingData[31:16] : memoryReadingData[15:0];
+    assign LOAD_halfword = LOAD_address[1] ? readingData[31:16] : readingData[15:0];
     
     logic [7:0] LOAD_byte; 
     assign LOAD_byte = LOAD_address[0] ? LOAD_halfword[15:8] : LOAD_halfword[7:0];
@@ -34,6 +34,6 @@ module load_unit (
 
     assign LOAD_data = memoryByteAccess ? {{24{LOAD_sign}}, LOAD_byte} :
                 memoryHalfwordAccess ? {{16{LOAD_sign}}, LOAD_halfword} :
-                memoryReadingData;
+                readingData;
 
 endmodule

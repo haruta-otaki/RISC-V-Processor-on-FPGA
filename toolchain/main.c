@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "uart.h"
-
 #include "utils.h"
 
 int main() {
@@ -11,6 +10,6 @@ int main() {
 
    while(1) {
       fgets(buffer, 128, STDIN_FILENO);
-      print(buffer);
+      printf(buffer);
    }
 }

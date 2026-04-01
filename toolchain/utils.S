@@ -22,3 +22,4 @@ read_instructions_retired:
     rdinstreth t0
     bne a1, t0, 1b
     ret
+

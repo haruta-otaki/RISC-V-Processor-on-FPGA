@@ -3,17 +3,15 @@ module uart
   (
     input logic clock, 
     input logic reset, 
-    output logic [7:0] ioReadingData,
-    input logic [7:0] ioWritingData,  
-    output logic isRX, 
+    output logic [7:0] uartReadingData,
+    input logic [7:0] uartWritingData,  
     input logic isTX, 
     input logic RXserial, 
     output logic TXserial,
-    output logic TXactive
+    output logic RXfull,
+    output logic TXbusy
   );
   
-  logic [7:0] w_Binary_Count; 
-
   logic currentTXserial; 
 
   uart_RX #(
@@ -24,8 +22,8 @@ module uart
     .clock(clock),
     .reset(reset),
     .RXserial(RXserial),
-    .RXvalid(isRX),
-    .RXbyte(ioReadingData)
+    .RXvalid(RXfull),
+    .RXbyte(uartReadingData)
     );
 
   uart_TX #(
@@ -36,12 +34,12 @@ module uart
       .clock(clock),
       .reset(reset),
       .TXvalid(isTX),
-      .TXbyte(ioWritingData),
-      .TXactive(TXactive),
-      .TXserial(currentTXserial),
-      .TXdone()
+      .TXbyte(uartWritingData),
+      .TXactive(TXbusy),
+      .TXserial(currentTXserial)
     );
 
   // drive UART transmitter high when transmitter is inactive
-  assign TXserial = TXactive ? currentTXserial : 1'b1; 
+  assign TXserial = TXbusy ? currentTXserial : 1'b1; 
+
 endmodule

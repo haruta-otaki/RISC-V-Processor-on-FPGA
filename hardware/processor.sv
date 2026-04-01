@@ -3,13 +3,13 @@ module processor #(
     ) (
     input logic clock,
     input logic reset,
-    output logic [31:0] memoryWritingData,
-    output logic [31:0] memoryWritingAddress,
-    output logic memoryWritingSignal,
-    output logic [3:0] memoryWritingMask,
-    input logic [31:0] memoryReadingData,
-    output logic [31:0] memoryReadingAddress,
-    output logic memoryReadingSignal,
+    output logic [31:0] writingData,
+    output logic [31:0] writingAddress,
+    output logic writingSignal,
+    output logic [3:0] writingMask,
+    input logic [31:0] readingData,
+    output logic [31:0] readingAddress,
+    output logic readingSignal,
     output logic [31:0] x1
     );
     
@@ -149,7 +149,7 @@ module processor #(
     load_unit load_unit_inst (
     .funct3(funct3),
     .LOAD_address(LOAD_address),
-    .memoryReadingData(memoryReadingData),
+    .readingData(readingData),
     .LOAD_data(LOAD_data)
    );
 
@@ -160,14 +160,14 @@ module processor #(
     store_unit store_unit_inst (
     .funct3(funct3),
     .rs2(rs2),
-    .memoryWritingAddress(memoryWritingAddress),
+    .writingAddress(writingAddress),
     .storeWritingMask(storeWritingMask),
-    .memoryWritingData(memoryWritingData)
+    .writingData(writingData)
    );
 
-    assign instruction = (state == DECODE ? memoryReadingData : fetched_instruction);
-    assign memoryReadingAddress = (state == FETCH) ? PC : LOAD_address;
-    assign memoryWritingMask = {4{(state == MEMORY)}} & storeWritingMask;
+    assign instruction = (state == DECODE ? readingData : fetched_instruction);
+    assign readingAddress = (state == FETCH) ? PC : LOAD_address;
+    assign writingMask = {4{(state == MEMORY)}} & storeWritingMask;
 
     // fetch rs1 and rs2 
     assign rs1 = RegisterBank[rs1ID];
@@ -184,6 +184,7 @@ module processor #(
     if (reset)
     begin
         state <= INIT; 
+        writingAddress <= 0; 
         for(int i=0; i<32; i++) 
             RegisterBank[i] <= 0;
     end 
@@ -205,7 +206,7 @@ module processor #(
             end     
         INIT :
             begin
-                memoryReadingSignal <= 1; 
+                readingSignal <= 1; 
                 PC <= 0;
                 state <= FETCH;
             end
@@ -213,7 +214,7 @@ module processor #(
         FETCH :
             begin
                 // fetched_instruction <= instruction; 
-                memoryReadingSignal <= 0; 
+                readingSignal <= 0; 
                 state <= DECODE;
             end 
 
@@ -223,7 +224,7 @@ module processor #(
                 fetched_instruction <= instruction; 
                 $display("PC: %h, instruction:%h", PC, instruction);
                 
-                if($isunknown(instruction) || instruction == 0) 
+                if($isunknown(instruction) || instruction == 32'h0073 || instruction == 32'h006f) 
                     state <= HALT;
                 else 
                 state <= EXECUTE;
@@ -265,13 +266,13 @@ module processor #(
 
                 if (isLoad)
                 begin
-                    memoryReadingSignal <= 1; 
+                    readingSignal <= 1; 
                     LOAD_address <= rs1 + Iimmediate;
                 end 
                 if (isStore)
                 begin 
-                    memoryWritingSignal <= 1; 
-                    memoryWritingAddress <= rs1 + Simmediate;
+                    writingSignal <= 1; 
+                    writingAddress <= rs1 + Simmediate;
                 end
 
                 if (isLoad || isALUregister || isALUimmediate || isJALR || isJAL || isAUIPC || isLUI)
@@ -289,12 +290,12 @@ module processor #(
         MEMORY :
             begin
                 if (isLoad)
-                    memoryReadingSignal <= 0;
+                    readingSignal <= 0;
 
                 if (isStore)
                 begin 
-                    $display("Mask: (store): %b, (writing): %b", storeWritingMask, memoryWritingMask);
-                    memoryWritingSignal <= 0; 
+                    $display("Mask: (store): %b, (writing): %b", storeWritingMask, writingMask);
+                    writingSignal <= 0; 
                 end
                 state <= WRITE_BACK;
             end
@@ -320,7 +321,7 @@ module processor #(
                 // register X0 must strictly be 0
                 RegisterBank[0] <= 0;
                 writeBackEnable <= 0; 
-                memoryReadingSignal <= 1; 
+                readingSignal <= 1; 
                 state <= FETCH;
             end
     endcase
