@@ -4,11 +4,11 @@
 // This code is based on Project F's line drawing tutorial (projectF.io)
 // with modifications and cleanup
 
-module bram_sdp #(
+module bram #(
     parameter WIDTH=32, 
     parameter DEPTH=(1 << (15-2)), 
     parameter INIT="",
-    parameter ADDR_WIDTH=$clog2(DEPTH)
+    parameter ADDR_WIDTH=$clog2(DEPTH + 1)
     ) (
     input logic clock_write,
     input logic clock_read,
@@ -69,7 +69,7 @@ module bram_sdp #(
     begin
         if (reset) 
             data_out <= {WIDTH{1'b0}};
-        if (read_enable) 
+        else if (read_enable) 
             data_out <= memory[addr_read];
     end
 endmodule

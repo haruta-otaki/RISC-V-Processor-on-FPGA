@@ -13,7 +13,7 @@ TOP			?= soc
 # This module instantiates TOPand provides clocks, resets, and stimulus for simulation purposes.
 TOP_TB		?= execution2_tb
 #  actual hardware design files used for synthesis and bitstream generation.
-MODULES		?= soc.sv processor.sv bram_sdp.sv decoder.sv alu.sv branch_unit.sv load_unit.sv store_unit.sv UART.sv UART_TX.sv UART_RX.sv
+MODULES		?= soc.sv processor.sv bram_sdp.sv decoder.sv alu.sv branch_unit.sv load_unit.sv store_unit.sv UART.sv UART_TX.sv UART_RX.sv baud_generator.sv shift_register_reverse.sv shift_register.sv fifo.sv fifo_bram_sdp.sv
 # include the testbench itself (TOP_TB) plus all RTL modules, used only for simulation, not for synthesis.
 MODULES_TB	?= execution2_tb.sv
 

@@ -1,5 +1,6 @@
 module processor #(
-    parameter MEMORY_INIT
+    parameter MEMORY_INIT,
+    parameter ROM_BASE = 32'h0
     ) (
     input logic clock,
     input logic reset,
@@ -193,13 +194,6 @@ module processor #(
     case (state)
         HALT :
             begin
-            // //display results 
-            // $display("x1:%d expected:5", RegisterBank[1]);
-            // $display("x2:%d expected:5", RegisterBank[2]);
-            // $display("x6:%d expected:0", RegisterBank[6]);
-            // $display("x7:%d expected:3", RegisterBank[7]);
-            // $display("x9:%d expected:5", RegisterBank[9]);
-
             `ifdef SIMULATION
                 $finish;
             `endif
@@ -207,7 +201,7 @@ module processor #(
         INIT :
             begin
                 readingSignal <= 1; 
-                PC <= 0;
+                PC <= 32'h8000;
                 state <= FETCH;
             end
 
@@ -222,7 +216,7 @@ module processor #(
             begin
                 //instruction isn't updated until FETCH; why? 
                 fetched_instruction <= instruction; 
-                $display("PC: %h, instruction:%h", PC, instruction);
+                // $display("PC: %h, instruction:%h", PC, instruction);
                 
                 if($isunknown(instruction) || instruction == 32'h0073 || instruction == 32'h006f) 
                     state <= HALT;
@@ -233,18 +227,18 @@ module processor #(
                             isAUIPC ? Uimmediate[31:0] :
                             Bimmediate[31:0]);
 
-                case (1'b1)
-                isALUregister: $display("isALUregister rdID=%d rs1ID=%d rs2ID=%d funct3=%b",rdID, rs1ID, rs2ID, funct3);
-                isALUimmediate: $display("isALUimmediate rdID=%d rs1ID=%d imm=%0d funct3=%b",rdID, rs1ID, Iimmediate, funct3);
-                isBranch: $display("BRANCH");
-                isJAL:    $display("JAL");
-                isJALR:   $display("JALR");
-                isAUIPC:  $display("AUIPC");
-                isLUI:    $display("LUI");
-                isLoad:   $display("LOAD");
-                isStore:  $display("STORE");
-                isSYSTEM: $display("SYSTEM");
-                endcase
+                // case (1'b1)
+                // isALUregister: $display("isALUregister rdID=%d rs1ID=%d rs2ID=%d funct3=%b",rdID, rs1ID, rs2ID, funct3);
+                // isALUimmediate: $display("isALUimmediate rdID=%d rs1ID=%d imm=%0d funct3=%b",rdID, rs1ID, Iimmediate, funct3);
+                // isBranch: $display("BRANCH");
+                // isJAL:    $display("JAL");
+                // isJALR:   $display("JALR");
+                // isAUIPC:  $display("AUIPC");
+                // isLUI:    $display("LUI");
+                // isLoad:   $display("LOAD");
+                // isStore:  $display("STORE");
+                // isSYSTEM: $display("SYSTEM");
+                // endcase
             end 
         
         EXECUTE :
@@ -294,7 +288,7 @@ module processor #(
 
                 if (isStore)
                 begin 
-                    $display("Mask: (store): %b, (writing): %b", storeWritingMask, writingMask);
+                    // $display("Mask: (store): %b, (writing): %b", storeWritingMask, writingMask);
                     writingSignal <= 0; 
                 end
                 state <= WRITE_BACK;
@@ -309,12 +303,12 @@ module processor #(
                     if(isLoad)
                     begin
                         RegisterBank[rdID] <= LOAD_data;
-                        $display("writeBackData (D)=%d, (H)=%h",LOAD_data, LOAD_data);
+                        // $display("writeBackData (D)=%d, (H)=%h",LOAD_data, LOAD_data);
                     end
                     else
                     begin
                         RegisterBank[rdID] <= writeBackData;
-                        $display("writeBackData (D)=%d, (H)=%h",writeBackData, writeBackData);
+                        // $display("writeBackData (D)=%d, (H)=%h",writeBackData, writeBackData);
                     end
                 end
 
@@ -328,19 +322,6 @@ module processor #(
     end
     end    
 endmodule
-
-/*
-$display("PC: %0d, Instruction: %h", pc, instruction);
-
-    if (instruction_type == "OP") begin
-        $display("  Type: OP");
-        $display("    rd:  x%02d", rd);
-        $display("    rs1: x%02d = %0d", rs1, rs1_data);
-        $display("    rs2: x%02d = %0d", rs2, rs2_data);
-        $display("    funct3 = %03b, funct7 = %07b", funct3, funct7);
-    end
-*/
-
 /* 
     Makefile: a file used by the make tool to automate building (compiling) projects. 
     Abbreviates manually typing all the gcc or g++ commands manually

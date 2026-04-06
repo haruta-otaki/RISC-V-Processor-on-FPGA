@@ -184,6 +184,7 @@ module execution2_tb();
 
     // Process to continuously read from file written by picocom and send to UART RX
     initial begin
+
         logic [7:0] byte_send;
         string ps_path;
         integer ps_position;
@@ -231,8 +232,8 @@ module execution2_tb();
 
     initial begin
         // Comment out VCD dump for faster testing
-        // $dumpfile("execution2_tb.vcd");
-        // $dumpvars(0, soc_inst);
+        $dumpfile("execution2_tb.vcd");
+        $dumpvars(0, soc_inst);
 
         $display("Baud rate: %0d", BAUD_RATE);
 
@@ -249,7 +250,7 @@ module execution2_tb();
         $display("Press Ctrl+C to stop the simulation");
 
         // Comment to run forever - user will Ctrl+C to stop
-        // #100_000_000; // Run for 100 ms max
+        // #330000000; // Run for 100 ms max
         // $finish;
     end
 endmodule

@@ -34,7 +34,9 @@ module soc #(
     output logic RTS,
     input logic CTS
     );
-  
+    localparam MEMORY_DEPTH = 1 << (15-2);
+    localparam MEMORY_ADDRESS_WIDTH = $clog2(MEMORY_DEPTH + 1);
+
     logic [31:0] x1;
 
     logic [31:0] readingAddress;
@@ -48,12 +50,20 @@ module soc #(
 
     logic [31:0] ramReadingData;
     logic [31:0] romReadingData;
+
+    logic [31:0] ramReadingAddress;
+    logic [31:0] romReadingAddress;
+    logic [31:0] ramWritingAddress;
+    logic [31:0] romWritingAddress;
+
     logic [31:0] ioReadingData; 
     logic [7:0] uartReadingData; 
+    logic [7:0] uartWritingData; 
 
     logic [31:0] address;
 
     logic isIO; 
+    logic isWaitingIO; 
     logic isRAM;
     logic isROM; 
 
@@ -70,8 +80,17 @@ module soc #(
     logic RXfull; 
     logic TXbusy; 
 
-    localparam DEPTH = 1 << (15-2);
-    // do not understand CTS, RTS, and the use of STATUS in-register data
+    localparam IO_BASE = 32'h340;
+    localparam RAM_BASE = 32'h400;
+    localparam ROM_BASE = 32'h8000;
+
+    logic uart_interrupt;
+    logic uart_use_bus;
+    inout [7:0] uart_data_inout;
+
+    logic wasRAM;
+    logic wasROM;
+    logic wasUART;
 
     // localparam INTERRUPT = 7;
     // localparam FIFO_TX_FULL = 5; 
@@ -81,14 +100,14 @@ module soc #(
     // localparam WAIT_RX = 1;    
     // localparam WAIT_TX = 0;       
        
-    assign isRX = isUART & (address[1:0] == 2'b01);
-    assign isTX = isUART & (address[1:0] == 2'b00);
+    assign isRX = isUART & (address[1:0] == 2'b01) & readingSignal;
+    assign isTX = isUART & (address[1:0] == 2'b00) & writingSignal;
     assign isSTATUS = isUART & (address[1:0] == 2'b10);
 
-    assign address = readingSignal ? readingAddress : writingAddress; 
-    assign isIO = (address[21:10] == 11'b0 && address[9:8] == 2'b11);
-    assign isRAM = (address[15] == 0 && !isIO);
-    assign isROM = (!isRAM & !isIO); 
+    assign address = readingSignal ? readingAddress : (writingSignal ? writingAddress : 0); 
+    assign isIO = (address[31:10] == 22'b0 && address[9:8] == 2'b11);
+    assign isRAM = ((address[15] == 0 && !isIO) && (readingSignal || writingSignal));
+    assign isROM = (address[15] == 1) && (readingSignal || writingSignal); 
 
     assign isDevice0 = isIO & (address[7:6] == 2'b00);
     assign isDevice1 = isIO & (address[7:6] == 2'b01);
@@ -96,14 +115,47 @@ module soc #(
     assign isDevice3 = isIO & (address[7:6] == 2'b11);
 
     assign isUART = isDevice1; 
-    assign readingData = isIO ? ioReadingData : 
-                            isRAM ? ramReadingData : romReadingData;
+
+    // always @(posedge clock) 
+    // begin
+    //     $display("address: %h", address);
+    //     $display("isROM: %b", isROM);
+    //     $display("isRAM: %b", isRAM);
+    //     $display("isUART: %b", isUART);
+    // end
+
+    // always @(posedge clock or posedge RESET) 
+    // begin
+    //     if (RESET)
+    //         isWaitingIO <= 0; 
+    //     else
+    //     begin
+    //         isWaitingIO <= isIO & readingSignal; 
+
+    //         if (isRX)
+    //             ioReadingData <= {uartReadingData, uartReadingData, uartReadingData, uartReadingData}; 
+    //         if (isSTATUS & readingSignal) 
+    //             ioReadingData <= {30'b0, !RXfull, TXbusy}; 
+    //         if (isTX)
+    //             uartWritingData <= writingData[7:0]; 
+    //     end
+    // end
+
+    assign ramReadingAddress = readingAddress - RAM_BASE;
+    assign ramWritingAddress = writingAddress - RAM_BASE;
+    assign romReadingAddress = readingAddress - ROM_BASE;
+    assign romWritingAddress = writingAddress - ROM_BASE;
+
+    always_ff @(posedge clock) begin
+        wasRAM  <= isRAM  & readingSignal;
+        wasROM  <= isROM  & readingSignal;
+        wasUART <= isUART & readingSignal;
+    end
 
     always @(*) begin
-        if (isRX & !RXfull)
-            ioReadingData <= {24'b0, uartReadingData}; 
-        if (isSTATUS) 
-            ioReadingData <= {30'b0, RXfull, TXbusy}; 
+        if      (wasUART) readingData <= {24'b0, uart_data_inout};
+        else if (wasRAM)  readingData <= ramReadingData;
+        else              readingData <= romReadingData;
     end
 
     //--------------------------------------------------
@@ -111,52 +163,56 @@ module soc #(
     //--------------------------------------------------   
     
     // synchronous duo port - support   
-    bram_sdp #(
+    bram #(
     //custom change 
     .WIDTH(32),
-    .DEPTH(DEPTH),
-    .INIT("")
+    .DEPTH(MEMORY_DEPTH),
+    .INIT(""),
+    .ADDR_WIDTH(MEMORY_ADDRESS_WIDTH)
     ) RAM (
         .clock_write(clock),
         .clock_read(clock),
         .reset(RESET),
         .write_enable(isRAM & writingSignal),
         .read_enable(isRAM & readingSignal),
-        .addr_write(writingAddress[$clog2(DEPTH) + (2 - 1):2]),
+        .addr_write(ramWritingAddress[MEMORY_ADDRESS_WIDTH - 1:2]),
         // as PC increments by 4, disregard PC[2:0]
-        .addr_read(readingAddress[$clog2(DEPTH) + (2 - 1):2]),
+        .addr_read(ramReadingAddress[MEMORY_ADDRESS_WIDTH - 1:2]),
         .memoryWritingMask(writingMask),
         .data_in(writingData),
         .data_out(ramReadingData)
     );
 
+    
     //--------------------------------------------------
     // ROM
     //--------------------------------------------------   
     
     // synchronous duo port - support   
-    bram_sdp #(
+    bram #(
     //custom change 
     .WIDTH(32),
-    .DEPTH(DEPTH),
-    .INIT(MEMORY_INIT)
+    .DEPTH(MEMORY_DEPTH),
+    .INIT(MEMORY_INIT),
+    .ADDR_WIDTH(MEMORY_ADDRESS_WIDTH)
     ) ROM (
         .clock_write(clock),
         .clock_read(clock),
         .reset(RESET),
         .write_enable(isROM & writingSignal),
         .read_enable(isROM & readingSignal),
-        .addr_write(writingAddress[$clog2(DEPTH) + (2 - 1):2]),
+        .addr_write(romWritingAddress[MEMORY_ADDRESS_WIDTH - 1:2]),
         // as PC increments by 4, disregard PC[2:0]
-        .addr_read(readingAddress[$clog2(DEPTH) + (2 - 1):2]),
+        .addr_read(romReadingAddress[MEMORY_ADDRESS_WIDTH - 1:2]),
         .memoryWritingMask(writingMask),
         .data_in(writingData),
         .data_out(romReadingData)
     );
 
     processor #(
-    .MEMORY_INIT(MEMORY_INIT)
-    ) processor_inst (
+    .MEMORY_INIT(MEMORY_INIT),
+    .ROM_BASE(ROM_BASE)
+    ) CPU (
     .clock(clock),
     .reset(RESET),
     .writingAddress(writingAddress),
@@ -169,17 +225,42 @@ module soc #(
     .x1(x1)
     );
 
+    // Bus drives here on !rwb & cs
+    // UART drives here rwb & cs
+    assign uart_data_inout = (writingSignal & isUART) ? writingData[7:0] : 8'bz;
+
     uart #(
-        .CLKS_PER_BIT(217)
-    ) UART (
+        .ADDR_WIDTH(2),
+        .DATA_WIDTH(8),
+        .CLOCK_RATE(12_000_000)
+    ) uart_inst (
         .clock(clock),
         .reset(RESET),
-        .uartReadingData(uartReadingData),
-        .uartWritingData(writingData[7:0]), // bottom 8 bits matter as UART sends one byte at a time
-        .isTX(isTX),
-        .RXserial(RXserial),
-        .TXserial(TXserial),
-        .RXfull(RXfull),
-        .TXbusy(TXbusy)
+        .addr(address[1:0]),
+        .data(uart_data_inout),
+        .cs(isUART),
+        .rwb(!writingSignal),
+        .interrupt(uart_interrupt),
+        .rx(RXserial),
+        .tx(TXserial),
+        .cts(CTS),
+        .rts(RTS),
+        .use_bus(uart_use_bus)
     );
+
+    // uart #(
+    //     .CLKS_PER_BIT(104)
+    // ) UART (
+    //     .clock(clock),
+    //     .reset(RESET),
+    //     .uartReadingData(uartReadingData),
+    //     .uartWritingData(uartWritingData), // bottom 8 bits matter as UART sends one byte at a time
+    //     .isRX(isRX),
+    //     .isTX(isTX),
+    //     .RXserial(RXserial),
+    //     .TXserial(TXserial),
+    //     .RXfull(RXfull),
+    //     .TXbusy(TXbusy),
+    //     .readingSignal(readingSignal)
+    // );
 endmodule
