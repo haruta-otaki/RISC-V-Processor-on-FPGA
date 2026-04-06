@@ -1,7 +1,7 @@
-"""
-newlib (C standard library) “syscalls layer” for an embedded system
-connects printf, malloc, read, write, etc. to custom hardware (UART + heap in RAM)
-"""
+
+// newlib (C standard library) “syscalls layer” for an embedded system
+// connects printf, malloc, read, write, etc. to custom hardware (UART + heap in RAM)
+
 // Fixed-width integers
 #include <stdint.h>
 // Defines stat struct (file metadata)

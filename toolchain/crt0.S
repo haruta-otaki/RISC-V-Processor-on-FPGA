@@ -57,7 +57,7 @@ data_copy:
 
 // zeros the .sbss region as the C standard guarantees that uninitialized globals start at zero
 sbss_init:
-    la t0, _ssbsswh
+    la t0, _ssbss
     la t3, _esbss
 3:  beq t0, t3, bss_init
 // writes the hardwired zero register to memory.

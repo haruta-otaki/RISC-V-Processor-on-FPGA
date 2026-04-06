@@ -10,6 +10,6 @@ int main() {
 
    while(1) {
       fgets(buffer, 128, STDIN_FILENO);
-      printf(buffer);
+      printf("%s", buffer);
    }
 }
